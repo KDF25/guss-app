@@ -1,7 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+
 import { LoginPage } from "@/pages/login";
-import { RoundsPage } from "@/pages/rounds";
 import { RoundPage } from "@/pages/round";
+import { RoundsPage } from "@/pages/rounds";
 
 export const AppRouter = () => (
 	<BrowserRouter>
@@ -12,5 +13,3 @@ export const AppRouter = () => (
 		</Routes>
 	</BrowserRouter>
 );
-
-

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import { type User } from "./types";
 
 interface UserState {
@@ -8,7 +9,5 @@ interface UserState {
 
 export const useUserStore = create<UserState>((set) => ({
 	user: null,
-	setUser: (user) => set({ user }),
+	setUser: (user) => set({ user })
 }));
-
-

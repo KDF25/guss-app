@@ -1,5 +1,6 @@
-import { type User } from "@/entities/user";
 import { apiPost } from "@/shared/api";
+
+import { type User } from "@/entities/user";
 
 interface LoginResponse {
 	accessToken: string;
@@ -8,5 +9,3 @@ interface LoginResponse {
 
 export const loginRequest = (username: string, password: string) =>
 	apiPost<LoginResponse>("/login", { username, password });
-
-

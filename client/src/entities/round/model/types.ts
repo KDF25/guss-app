@@ -10,5 +10,3 @@ export interface Round {
 export interface RoundStats extends Round {
 	totalPoints: number;
 }
-
-
