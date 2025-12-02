@@ -34,6 +34,10 @@ npm run prisma:generate
 npx prisma migrate dev
 ```
 
+```bash
+npx prisma db push
+```
+
 ### 5. Запуск проекта
 
 
