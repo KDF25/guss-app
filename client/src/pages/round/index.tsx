@@ -35,6 +35,7 @@ export const RoundPage: React.FC = () => {
 	const [round, setRound] = useState<RoundStats | null>(null);
 	const [timeLeft, setTimeLeft] = useState(0);
 	const [isPreStart, setIsPreStart] = useState(false);
+	const [isFinished, setIsFinished] = useState(false);
 	const [myPoints, setMyPoints] = useState(0);
 	const [myTaps, setMyTaps] = useState(0);
 	const [totalPoints, setTotalPoints] = useState(0);
@@ -60,11 +61,18 @@ export const RoundPage: React.FC = () => {
 			if (now < start) {
 				// До старта раунда - показываем таймер до начала
 				setIsPreStart(true);
+				setIsFinished(false);
 				setTimeLeft(Math.max(0, Math.floor((start - now) / 1000)));
-			} else {
-				// Раунд уже начался - показываем таймер до конца
+			} else if (now < end) {
+				// Раунд активен
 				setIsPreStart(false);
+				setIsFinished(false);
 				setTimeLeft(Math.max(0, Math.floor((end - now) / 1000)));
+			} else {
+				// Раунд завершен
+				setIsPreStart(false);
+				setIsFinished(true);
+				setTimeLeft(0);
 			}
 		});
 	}, [id, user, navigate]);
@@ -82,15 +90,18 @@ export const RoundPage: React.FC = () => {
 				const remaining = Math.max(0, Math.floor((start - now) / 1000));
 				setTimeLeft(remaining);
 				setIsPreStart(true);
+				setIsFinished(false);
 			} else if (now < end) {
 				// Раунд активен
 				const remaining = Math.max(0, Math.floor((end - now) / 1000));
 				setTimeLeft(remaining);
 				setIsPreStart(false);
+				setIsFinished(false);
 			} else {
 				// Раунд завершен
 				setTimeLeft(0);
 				setIsPreStart(false);
+				setIsFinished(true);
 			}
 		}, 1000);
 
@@ -100,7 +111,7 @@ export const RoundPage: React.FC = () => {
 	if (!round || !user) return null;
 
 	const handleTap = async () => {
-		if (isPreStart) return; // Блокируем тапы до старта
+		if (isPreStart || isFinished) return; // Блокируем тапы до старта и после окончания
 
 		const res = await tapRound(round.id);
 		setMyPoints(res.myScore.points);
