@@ -19,6 +19,8 @@ npm install
 
 PORT=3000
 DATABASE_URL="postgresql://postgres:password@localhost:5432/db_name"
+ROUND_DURATION=60 
+COOLDOWN_DURATION=30 
 
 ### 4. Выполнение миграций Prisma
 

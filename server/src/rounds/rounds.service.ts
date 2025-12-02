@@ -4,15 +4,19 @@ import { RoundStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class RoundsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private getCooldownDuration(): number {
     return parseInt(process.env.COOLDOWN_DURATION || '30', 10) * 1000; // секунды в мс
   }
 
+  private getRoundDuration(): number {
+    return parseInt(process.env.ROUND_DURATION || '60', 10) * 1000; // секунды в мс
+  }
+
   private calculateStatus(now: Date, start: Date, end: Date): RoundStatus {
     const cooldownEnd = new Date(start.getTime() - this.getCooldownDuration());
-    
+
     if (now < cooldownEnd) {
       return RoundStatus.PLANNED;
     }
@@ -28,7 +32,7 @@ export class RoundsService {
   private async updateRoundStatus(round: any) {
     const now = new Date();
     const newStatus = this.calculateStatus(now, round.startDate, round.endDate);
-    
+
     if (round.status !== newStatus) {
       await this.prisma.round.update({
         where: { id: round.id },
@@ -47,12 +51,12 @@ export class RoundsService {
     const rounds = await this.prisma.round.findMany({
       orderBy: { startDate: 'desc' },
     });
-    
+
     // Обновляем статусы всех раундов
     return Promise.all(rounds.map(r => this.updateRoundStatus(r)));
   }
 
-  async getRoundWithStats(id: number) {
+  async getRoundWithStats(id: number, userId: number) {
     const round = await this.prisma.round.findUnique({
       where: { id },
       include: {
@@ -68,19 +72,23 @@ export class RoundsService {
     await this.updateRoundStatus(round);
 
     const totalPoints = round.scores.reduce((acc, s) => acc + s.points, 0);
+    const myScore = round.scores.find(s => s.userId === userId);
 
     return {
       ...round,
       totalPoints,
+      myScore: myScore ? { taps: myScore.taps, points: myScore.points } : { taps: 0, points: 0 },
     };
   }
 
-  async createRound(userRole: UserRole, startDate: Date, endDate: Date) {
+  async createRound(userRole: UserRole) {
     if (userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only admin can create rounds');
     }
 
     const now = new Date();
+    const startDate = new Date(now.getTime() + this.getCooldownDuration());
+    const endDate = new Date(startDate.getTime() + this.getRoundDuration());
     const status = this.calculateStatus(now, startDate, endDate);
 
     return this.prisma.round.create({
@@ -100,7 +108,7 @@ export class RoundsService {
     }
 
     const isActive = this.isActiveRound(now, round.startDate, round.endDate);
-    if (!isActive || round.status !== RoundStatus.ACTIVE) {
+    if (!isActive) {
       throw new ForbiddenException('Round is not active');
     }
 
@@ -131,22 +139,22 @@ export class RoundsService {
         update: isNikita
           ? {}
           : {
-              taps: newTaps,
-              points: newPoints,
-            },
+            taps: newTaps,
+            points: newPoints,
+          },
         create: isNikita
           ? {
-              userId,
-              roundId,
-              taps: 0,
-              points: 0,
-            }
+            userId,
+            roundId,
+            taps: 0,
+            points: 0,
+          }
           : {
-              userId,
-              roundId,
-              taps: 1,
-              points: addedPoints,
-            },
+            userId,
+            roundId,
+            taps: 1,
+            points: addedPoints,
+          },
       });
 
       const allScores = await tx.score.findMany({

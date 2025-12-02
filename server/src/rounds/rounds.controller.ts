@@ -13,13 +13,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserRole } from '@prisma/client';
 
 class CreateRoundDto {
-  startDate!: string;
-  endDate!: string;
+  // Пустой DTO - даты теперь определяются на сервере
 }
 
 @Controller('rounds')
 export class RoundsController {
-  constructor(private readonly roundsService: RoundsService) {}
+  constructor(private readonly roundsService: RoundsService) { }
 
   @Get()
   list() {
@@ -27,19 +26,17 @@ export class RoundsController {
   }
 
   @Get(':id')
-  get(@Param('id', ParseIntPipe) id: number) {
-    return this.roundsService.getRoundWithStats(id);
+  @UseGuards(JwtAuthGuard)
+  get(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    const userId = req.user.sub as number;
+    return this.roundsService.getRoundWithStats(id, userId);
   }
 
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Req() req: any, @Body() dto: CreateRoundDto) {
     const role = req.user.role as UserRole;
-    return this.roundsService.createRound(
-      role,
-      new Date(dto.startDate),
-      new Date(dto.endDate),
-    );
+    return this.roundsService.createRound(role);
   }
 
   @Post(':id/tap')

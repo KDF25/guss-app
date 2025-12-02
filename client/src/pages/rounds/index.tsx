@@ -26,10 +26,7 @@ export const RoundsPage: React.FC = () => {
 
 	const handleCreateRound = async () => {
 		if (!user || user.role !== "ADMIN") return;
-		const now = new Date();
-		const start = now.toISOString();
-		const end = new Date(now.getTime() + 60 * 1000).toISOString();
-		const round = await createRound(start, end);
+		const round = await createRound();
 		setRounds((prev) => [round, ...prev]);
 	};
 

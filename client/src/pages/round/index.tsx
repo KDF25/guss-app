@@ -34,6 +34,7 @@ export const RoundPage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 	const [round, setRound] = useState<RoundStats | null>(null);
 	const [timeLeft, setTimeLeft] = useState(0);
+	const [isPreStart, setIsPreStart] = useState(false);
 	const [myPoints, setMyPoints] = useState(0);
 	const [myTaps, setMyTaps] = useState(0);
 	const [totalPoints, setTotalPoints] = useState(0);
@@ -49,23 +50,58 @@ export const RoundPage: React.FC = () => {
 		fetchRound(Number(id)).then((r) => {
 			setRound(r);
 			setTotalPoints(r.totalPoints);
+			setMyPoints(r.myScore.points);
+			setMyTaps(r.myScore.taps);
+
 			const now = Date.now();
+			const start = new Date(r.startDate).getTime();
 			const end = new Date(r.endDate).getTime();
-			setTimeLeft(Math.max(0, Math.floor((end - now) / 1000)));
+
+			if (now < start) {
+				// До старта раунда - показываем таймер до начала
+				setIsPreStart(true);
+				setTimeLeft(Math.max(0, Math.floor((start - now) / 1000)));
+			} else {
+				// Раунд уже начался - показываем таймер до конца
+				setIsPreStart(false);
+				setTimeLeft(Math.max(0, Math.floor((end - now) / 1000)));
+			}
 		});
 	}, [id, user, navigate]);
 
 	useEffect(() => {
-		if (!timeLeft) return;
+		if (!round) return;
+
 		const interval = setInterval(() => {
-			setTimeLeft((prev) => Math.max(0, prev - 1));
+			const now = Date.now();
+			const start = new Date(round.startDate).getTime();
+			const end = new Date(round.endDate).getTime();
+
+			if (now < start) {
+				// До старта
+				const remaining = Math.max(0, Math.floor((start - now) / 1000));
+				setTimeLeft(remaining);
+				setIsPreStart(true);
+			} else if (now < end) {
+				// Раунд активен
+				const remaining = Math.max(0, Math.floor((end - now) / 1000));
+				setTimeLeft(remaining);
+				setIsPreStart(false);
+			} else {
+				// Раунд завершен
+				setTimeLeft(0);
+				setIsPreStart(false);
+			}
 		}, 1000);
+
 		return () => clearInterval(interval);
-	}, [timeLeft]);
+	}, [round]);
 
 	if (!round || !user) return null;
 
 	const handleTap = async () => {
+		if (isPreStart) return; // Блокируем тапы до старта
+
 		const res = await tapRound(round.id);
 		setMyPoints(res.myScore.points);
 		setMyTaps(res.myScore.taps);
@@ -91,29 +127,48 @@ export const RoundPage: React.FC = () => {
 					<CardContent className="space-y-4 text-slate-200">
 						<div
 							onClick={handleTap}
-							className="flex justify-center mb-2 cursor-pointer transform transition hover:scale-105 active:scale-95"
+							className={`flex justify-center mb-2 ${
+								isPreStart
+									? "cursor-not-allowed opacity-50"
+									: "cursor-pointer transform transition hover:scale-105 active:scale-95"
+							}`}
 						>
 							<GooseAscii />
 						</div>
 						<div className="text-2xl font-bold text-green-400">
-							Раунд активен!
+							{isPreStart
+								? "Раунд скоро начнется!"
+								: "Раунд активен!"}
 						</div>
 						<div className="text-xl">
-							До конца осталось:{" "}
+							{isPreStart
+								? "Раунд начнется через: "
+								: "До конца осталось: "}
 							<span className="font-mono text-yellow-400">
 								{formatTime(timeLeft)}
 							</span>
 						</div>
-						<div className="text-3xl font-bold">
-							Мои очки -{" "}
-							<span className="text-green-400">{myPoints}</span>
-						</div>
-						<div className="text-sm text-slate-400">
-							Тапов: {myTaps}
-						</div>
-						<div className="text-sm text-slate-400">
-							Всего по раунду: {totalPoints}
-						</div>
+						{!isPreStart && (
+							<>
+								<div className="text-3xl font-bold">
+									Мои очки -{" "}
+									<span className="text-green-400">
+										{myPoints}
+									</span>
+								</div>
+								<div className="text-sm text-slate-400">
+									Тапов: {myTaps}
+								</div>
+								<div className="text-sm text-slate-400">
+									Всего по раунду: {totalPoints}
+								</div>
+							</>
+						)}
+						{isPreStart && (
+							<div className="text-sm text-slate-400">
+								Тапы будут доступны после старта раунда
+							</div>
+						)}
 					</CardContent>
 				</Card>
 			</div>

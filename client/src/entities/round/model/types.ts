@@ -9,4 +9,5 @@ export interface Round {
 
 export interface RoundStats extends Round {
 	totalPoints: number;
+	myScore: { taps: number; points: number };
 }
